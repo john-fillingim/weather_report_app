@@ -22,6 +22,7 @@ load_dotenv()
 
 GEO_URL = "https://api.openweathermap.org/geo/1.0/direct"
 WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
+FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
 TIMEOUT = 10
 
 # Small map so the report can print a matching icon for the conditions.
@@ -120,12 +121,12 @@ def geocode(city, state, api_key):
     return matches[0]
 
 
-def fetch_weather(lat, lon, api_key, units="metric"):
-    """Pull current conditions for a coordinate pair."""
+def _get_conditions(url, lat, lon, api_key, units):
+    """Shared GET for the endpoints that take a coordinate pair."""
     params = {"lat": lat, "lon": lon, "units": units, "appid": api_key}
 
     try:
-        response = requests.get(WEATHER_URL, params=params, timeout=TIMEOUT)
+        response = requests.get(url, params=params, timeout=TIMEOUT)
     except requests.exceptions.RequestException as exc:
         raise WeatherError(f"Could not reach OpenWeatherMap: {exc}") from exc
 
@@ -133,6 +134,16 @@ def fetch_weather(lat, lon, api_key, units="metric"):
         raise WeatherError("API key was rejected. Check OPENWEATHER_API_KEY in your .env file.")
     response.raise_for_status()
     return response.json()
+
+
+def fetch_weather(lat, lon, api_key, units="metric"):
+    """Pull current conditions for a coordinate pair."""
+    return _get_conditions(WEATHER_URL, lat, lon, api_key, units)
+
+
+def fetch_forecast(lat, lon, api_key, units="metric"):
+    """Pull the 5-day / 3-hour forecast for a coordinate pair."""
+    return _get_conditions(FORECAST_URL, lat, lon, api_key, units)
 
 
 def celsius_to_fahrenheit(celsius):
